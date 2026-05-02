@@ -15,6 +15,9 @@
     "jsonwebtoken": "*",
     "multer": "*",
     "pdf-parse": "*",
-    "@supabase/supabase-js": "*"
+    "@supabase/supabase-js": "*",
+    "socket.io": "*",
+    "dotenv": "*",
+    "nodemon": "*"
   }
 }
