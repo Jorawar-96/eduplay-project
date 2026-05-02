@@ -1,0 +1,8 @@
+{
+  "build": {
+    "steps": []
+  },
+  "deploy": {
+    "startCommand": "node server.js"
+  }
+}
