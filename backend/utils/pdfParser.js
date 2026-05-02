@@ -1,53 +1,83 @@
-const pdf = require('pdf-parse');
+const PDFParser = require('pdf2json')
 
-const parseMCQFromText = (text) => {
-  const questions = [];
-  
-  // Split the text by numbering patterns like "1. ", "2. ", "Q1.", etc.
-  // This regex looks for a newline followed by a number and a dot.
-  const blocks = text.split(/(?=\n\d+\.\s)/);
-
-  blocks.forEach(block => {
-    const lines = block.trim().split('\n').map(l => l.trim()).filter(l => l);
-    if (lines.length < 3) return; // Needs at least a question and some options
-
-    // Extract question text
-    let questionText = lines[0].replace(/^\d+\.\s*/, '');
+const parsePDFBuffer = (buffer) => {
+  return new Promise((resolve, reject) => {
+    const pdfParser = new PDFParser()
     
-    let options = [];
-    let correct = 'A'; // Default fallback
-    let explanation = '';
-
-    lines.slice(1).forEach(line => {
-      if (line.match(/^[A-D][\)\.]\s/i)) {
-        // Match "A) option" or "A. option"
-        options.push(line.replace(/^[A-D][\)\.]\s*/i, ''));
-      } else if (line.toLowerCase().startsWith('answer:')) {
-        // Match "Answer: B"
-        correct = line.replace(/answer:\s*/i, '').trim().charAt(0).toUpperCase();
-      } else if (line.toLowerCase().startsWith('explanation:')) {
-        explanation = line.replace(/explanation:\s*/i, '').trim();
-      } else if (options.length === 0) {
-        // If we haven't hit options yet, it might be a multi-line question
-        questionText += ' ' + line;
+    pdfParser.on('pdfParser_dataReady', (pdfData) => {
+      try {
+        let text = ''
+        pdfData.Pages.forEach(page => {
+          page.Texts.forEach(textItem => {
+            textItem.R.forEach(r => {
+              text += decodeURIComponent(r.T) + ' '
+            })
+          })
+          text += '\n'
+        })
+        const questions = extractMCQFromText(text)
+        resolve(questions)
+      } catch (err) {
+        reject(err)
       }
-    });
+    })
+    
+    pdfParser.on('pdfParser_dataError', reject)
+    pdfParser.parseBuffer(buffer)
+  })
+}
 
-    if (options.length >= 2) {
-      questions.push({ question: questionText, options, correct, explanation });
+const extractMCQFromText = (text) => {
+  const questions = []
+  const lines = text.split('\n').filter(l => l.trim())
+  
+  let currentQuestion = null
+  let options = []
+  let correctAnswer = 'A'
+  
+  lines.forEach(line => {
+    line = line.trim()
+    
+    const qMatch = line.match(/^(\d+)[.)]\s+(.+)/)
+    if (qMatch) {
+      if (currentQuestion && options.length >= 2) {
+        questions.push({
+          id: questions.length + 1,
+          question: currentQuestion,
+          options: options.slice(0, 4),
+          correct: correctAnswer,
+          explanation: ''
+        })
+      }
+      currentQuestion = qMatch[2]
+      options = []
+      correctAnswer = 'A'
+      return
     }
-  });
-
-  return questions;
-};
-
-const extractQuestionsFromPDF = async (buffer) => {
-  try {
-    const data = await pdf(buffer);
-    return parseMCQFromText(data.text);
-  } catch (error) {
-    throw new Error("Failed to parse PDF file");
+    
+    const optMatch = line.match(/^[AaBbCcDd][.)]\s+(.+)/)
+    if (optMatch && currentQuestion) {
+      options.push(optMatch[1])
+      return
+    }
+    
+    const ansMatch = line.match(/^(?:answer|ans|correct)[:\s]+([AaBbCcDd])/i)
+    if (ansMatch) {
+      correctAnswer = ansMatch[1].toUpperCase()
+    }
+  })
+  
+  if (currentQuestion && options.length >= 2) {
+    questions.push({
+      id: questions.length + 1,
+      question: currentQuestion,
+      options: options.slice(0, 4),
+      correct: correctAnswer,
+      explanation: ''
+    })
   }
-};
+  
+  return questions
+}
 
-module.exports = { extractQuestionsFromPDF };
+module.exports = { parsePDFBuffer, extractMCQFromText }

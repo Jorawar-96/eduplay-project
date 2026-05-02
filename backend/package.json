@@ -9,15 +9,15 @@
     "node": "18.x"
   },
   "dependencies": {
-    "express": "*",
-    "cors": "*",
+    "@supabase/supabase-js": "*",
     "bcryptjs": "*",
+    "cors": "*",
+    "dotenv": "*",
+    "express": "*",
     "jsonwebtoken": "*",
     "multer": "*",
-    "pdf-parse": "*",
-    "@supabase/supabase-js": "*",
-    "socket.io": "*",
-    "dotenv": "*",
-    "nodemon": "*"
+    "nodemon": "*",
+    "pdf2json": "^4.0.3",
+    "socket.io": "*"
   }
 }
