@@ -2,8 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const { createClient } = require('@supabase/supabase-js');
 const authMiddleware = require('../middleware/auth');
-const { extractQuestionsFromPDF } = require('../utils/pdfParser');
-
+const { parsePDFBuffer } = require('../utils/pdfParser');
 const router = express.Router();
 // Use memory storage so we don't have to save temporary files to disk
 const upload = multer({ storage: multer.memoryStorage() });
@@ -26,7 +25,7 @@ router.post('/upload-pdf', authMiddleware, upload.single('pdf'), async (req, res
     if (!category) return res.status(400).json({ error: "Category is required" });
 
     // 3. Extract text and parse questions
-    const extractedQuestions = await extractQuestionsFromPDF(req.file.buffer);
+    const extractedQuestions = await parsePDFBuffer(req.file.buffer);;
     if (extractedQuestions.length === 0) {
       return res.status(400).json({ error: "Could not parse PDF. Make sure MCQs are clearly formatted." });
     }
