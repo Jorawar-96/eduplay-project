@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "./context/AuthContext";
+import GameSidebar from "./component/GameSidebar";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,11 +26,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en">
+      <body style={{ display: 'flex', background: '#0a0015' }}>
+        <AuthProvider>
+          <GameSidebar />
+          <main style={{ flex: 1, marginLeft: 'auto', minHeight: '100vh', background: '#0a0015' }}>
+            {children}
+          </main>
+        </AuthProvider>
+      </body>
     </html>
   );
 }
