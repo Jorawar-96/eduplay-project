@@ -17,6 +17,7 @@ interface Question {
   question: string;
   options: string[];
   correct: string;
+  correctText?: string;
   explanation: string;
 }
 
@@ -90,12 +91,29 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
     const fetchQuestions = async () => {
       try {
         const res = await axios.get(`${API}/api/quiz/generate?topic=` + topic + '&difficulty=easy');
-        setQuestions(res.data.questions);
+        
+        // Map answer letter (A, B, C, D) to actual text value
+        const formattedQuestions = res.data.questions.map((q: any) => {
+          const index = ['A', 'B', 'C', 'D'].indexOf(q.correct);
+          return {
+            ...q,
+            correctText: index !== -1 ? q.options[index] : q.correct
+          };
+        });
+        
+        setQuestions(formattedQuestions);
         setGamePhase("playing");
       } catch (err) {
         console.error("Quiz fetch failed:", err);
         // Fallback: use hardcoded questions if API fails
-        setQuestions(fallbackQuestions);
+        const formattedFallback = fallbackQuestions.map((q: any) => {
+          const index = ['A', 'B', 'C', 'D'].indexOf(q.correct);
+          return {
+            ...q,
+            correctText: index !== -1 ? q.options[index] : q.correct
+          };
+        });
+        setQuestions(formattedFallback);
         setGamePhase("playing");
       }
     };
@@ -132,7 +150,11 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
   // 3. Handle Answer Selection
   const handleAnswer = (selectedOption: string) => {
     const currentQ = questions[currentIndex];
-    const isCorrect = selectedOption === currentQ.correct;
+    // compare against the actual text instead of the letter "B", "C"
+    const isCorrect = selectedOption === currentQ.correctText;
+
+    let currentMonsterHP = monsterHP;
+    let currentPlayerEnergy = playerEnergy;
 
     if (isCorrect) {
       // CRITICAL HIT! 
@@ -140,7 +162,8 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
       const speedBonus = timeLeft > 15 ? 20 : 0; 
       const damage = 80 + speedBonus;
       
-      setMonsterHP(prev => Math.max(0, prev - damage));
+      currentMonsterHP = Math.max(0, monsterHP - damage);
+      setMonsterHP(currentMonsterHP);
       setScore(prev => ({ ...prev, correct: prev.correct + 1 }));
       spawnFloatingText(`CRITICAL HIT! -${damage} HP`, "text-green-400");
       
@@ -149,10 +172,19 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
       setTimeout(() => setMonsterShake(false), 500);
 
     } else {
-      handleMiss("MISS!");
+      setScore(prev => ({ ...prev, wrong: prev.wrong + 1 }));
+      
+      if (shieldActive) {
+        spawnFloatingText("BLOCKED!", "text-blue-400");
+        setShieldActive(false); // consume shield
+      } else {
+        currentPlayerEnergy = Math.max(0, playerEnergy - 20);
+        setPlayerEnergy(currentPlayerEnergy);
+        spawnFloatingText(`MISS! -20 Energy`, "text-red-500");
+      }
     }
 
-    moveToNextQuestion();
+    moveToNextQuestion(currentMonsterHP, currentPlayerEnergy);
   };
 
   const handleMiss = (msg: string) => {
@@ -162,21 +194,26 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
       spawnFloatingText("BLOCKED!", "text-blue-400");
       setShieldActive(false); // consume shield
     } else {
-      setPlayerEnergy(prev => Math.max(0, prev - 20));
+      setPlayerEnergy(prev => {
+        const newEnergy = Math.max(0, prev - 20);
+        // Handle defeat immediately if time runs out and brings energy to 0
+        if (newEnergy <= 0) setTimeout(() => setGamePhase("defeat"), 1000);
+        return newEnergy;
+      });
       spawnFloatingText(`${msg} -20 Energy`, "text-red-500");
     }
   };
 
-  const moveToNextQuestion = () => {
+  const moveToNextQuestion = (currentMonsterHP: number, currentPlayerEnergy: number) => {
     setHiddenOptions([]); // reset hints
     
     setTimeout(() => {
       // Check win/loss immediately after state updates
-      if (playerEnergy <= 20 && !shieldActive) {
+      if (currentPlayerEnergy <= 0) {
          setGamePhase("defeat");
          return;
       }
-      if (monsterHP <= 100) { // If it drops to 0
+      if (currentMonsterHP <= 0) {
          handleVictory();
          return;
       }
@@ -186,7 +223,7 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
         setTimeLeft(30); // reset timer
       } else {
         // Out of questions. Did we kill it?
-        if (monsterHP <= 100) handleVictory();
+        if (currentMonsterHP <= 0) handleVictory();
         else setGamePhase("defeat");
       }
     }, 1000);
