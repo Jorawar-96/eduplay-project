@@ -17,7 +17,6 @@ interface Question {
   question: string;
   options: string[];
   correct: string;
-  correctText?: string;
   explanation: string;
 }
 
@@ -92,28 +91,12 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
       try {
         const res = await axios.get(`${API}/api/quiz/generate?topic=` + topic + '&difficulty=easy');
         
-        // Map answer letter (A, B, C, D) to actual text value
-        const formattedQuestions = res.data.questions.map((q: any) => {
-          const index = ['A', 'B', 'C', 'D'].indexOf(q.correct);
-          return {
-            ...q,
-            correctText: index !== -1 ? q.options[index] : q.correct
-          };
-        });
-        
-        setQuestions(formattedQuestions);
+        setQuestions(res.data.questions);
         setGamePhase("playing");
       } catch (err) {
         console.error("Quiz fetch failed:", err);
         // Fallback: use hardcoded questions if API fails
-        const formattedFallback = fallbackQuestions.map((q: any) => {
-          const index = ['A', 'B', 'C', 'D'].indexOf(q.correct);
-          return {
-            ...q,
-            correctText: index !== -1 ? q.options[index] : q.correct
-          };
-        });
-        setQuestions(formattedFallback);
+        setQuestions(fallbackQuestions);
         setGamePhase("playing");
       }
     };
@@ -148,13 +131,10 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
   };
 
   // 3. Handle Answer Selection
-  const handleAnswer = (selectedOption: string) => {
+  const handleAnswer = (selectedIndex: number) => {
     const currentQ = questions[currentIndex];
-    // compare against the actual text instead of the letter "B", "C"
-    const isCorrect = selectedOption === currentQ.correctText;
-
-    let currentMonsterHP = monsterHP;
-    let currentPlayerEnergy = playerEnergy;
+    const correctIndex = ['A', 'B', 'C', 'D'].indexOf(currentQ.correct);
+    const isCorrect = selectedIndex === correctIndex;
 
     if (isCorrect) {
       // CRITICAL HIT! 
@@ -162,8 +142,7 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
       const speedBonus = timeLeft > 15 ? 20 : 0; 
       const damage = 80 + speedBonus;
       
-      currentMonsterHP = Math.max(0, monsterHP - damage);
-      setMonsterHP(currentMonsterHP);
+      setMonsterHP(prev => prev - damage);
       setScore(prev => ({ ...prev, correct: prev.correct + 1 }));
       spawnFloatingText(`CRITICAL HIT! -${damage} HP`, "text-green-400");
       
@@ -178,13 +157,12 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
         spawnFloatingText("BLOCKED!", "text-blue-400");
         setShieldActive(false); // consume shield
       } else {
-        currentPlayerEnergy = Math.max(0, playerEnergy - 20);
-        setPlayerEnergy(currentPlayerEnergy);
+        setPlayerEnergy(prev => prev - 20);
         spawnFloatingText(`MISS! -20 Energy`, "text-red-500");
       }
     }
 
-    moveToNextQuestion(currentMonsterHP, currentPlayerEnergy);
+    moveToNextQuestion();
   };
 
   const handleMiss = (msg: string) => {
@@ -194,40 +172,35 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
       spawnFloatingText("BLOCKED!", "text-blue-400");
       setShieldActive(false); // consume shield
     } else {
-      setPlayerEnergy(prev => {
-        const newEnergy = Math.max(0, prev - 20);
-        // Handle defeat immediately if time runs out and brings energy to 0
-        if (newEnergy <= 0) setTimeout(() => setGamePhase("defeat"), 1000);
-        return newEnergy;
-      });
+      setPlayerEnergy(prev => prev - 20);
       spawnFloatingText(`${msg} -20 Energy`, "text-red-500");
     }
   };
 
-  const moveToNextQuestion = (currentMonsterHP: number, currentPlayerEnergy: number) => {
+  const moveToNextQuestion = () => {
     setHiddenOptions([]); // reset hints
     
     setTimeout(() => {
-      // Check win/loss immediately after state updates
-      if (currentPlayerEnergy <= 0) {
-         setGamePhase("defeat");
-         return;
-      }
-      if (currentMonsterHP <= 0) {
-         handleVictory();
-         return;
-      }
-
-      if (currentIndex < questions.length - 1) {
-        setCurrentIndex(prev => prev + 1);
-        setTimeLeft(30); // reset timer
-      } else {
-        // Out of questions. Did we kill it?
-        if (currentMonsterHP <= 0) handleVictory();
-        else setGamePhase("defeat");
-      }
+      setCurrentIndex((prev) => {
+        if (prev < questions.length - 1) {
+          setTimeLeft(30);
+          return prev + 1;
+        }
+        setGamePhase(phase => phase === "playing" ? "defeat" : phase);
+        return prev;
+      });
     }, 1000);
   };
+
+  // Victory/Defeat check after every answer
+  useEffect(() => {
+    if (gamePhase !== "playing") return;
+    if (monsterHP <= 0) {
+      handleVictory();
+    } else if (playerEnergy <= 0) {
+      setGamePhase("defeat");
+    }
+  }, [monsterHP, playerEnergy, gamePhase]);
 
   // 4. Handle Victory & Submit to DB
   const handleVictory = async () => {
@@ -269,7 +242,8 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
   const useHint = () => {
     if (inventory.hint > 0) {
       const currentQ = questions[currentIndex];
-      const wrongOptions = currentQ.options.filter(opt => opt !== currentQ.correct);
+      const correctIndex = ['A', 'B', 'C', 'D'].indexOf(currentQ.correct);
+      const wrongOptions = currentQ.options.filter((_, idx) => idx !== correctIndex);
       // Hide 2 wrong options randomly
       setHiddenOptions([wrongOptions[0], wrongOptions[1]]);
       setInventory(prev => ({ ...prev, hint: 0 }));
@@ -332,7 +306,7 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
                     key={i}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => handleAnswer(option)}
+                    onClick={() => handleAnswer(i)}
                     className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-purple-600/20 hover:border-purple-500 transition-all font-semibold text-lg text-left"
                   >
                     {["A", "B", "C", "D"][i]}. {option}

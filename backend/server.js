@@ -75,7 +75,7 @@ app.get('/api/quiz/generate', async (req, res) => {
   const selectedQuestions = pool.map(q => ({
     id: q.id,
     question: q.question,
-    options: shuffleArray(q.options), // Shuffle options here!
+    options: q.options,
     correct: q.correct,
     explanation: q.explanation
   }));
@@ -342,7 +342,7 @@ app.post('/api/teacher/quiz/create', async (req, res) => {
              
   const customQuiz = pool.map(q => ({
     question: q.question,
-    options: shuffleArray(q.options),
+    options: q.options,
     correct: q.correct
   }));
 
