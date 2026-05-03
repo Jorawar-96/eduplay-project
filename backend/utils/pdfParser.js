@@ -1,43 +1,11 @@
-const PDFParser = require('pdf2json')
-
-const parsePDFBuffer = (buffer) => {
-  return new Promise((resolve, reject) => {
-    const pdfParser = new PDFParser()
-    
-    pdfParser.on('pdfParser_dataReady', (pdfData) => {
-      try {
-        let text = ''
-        pdfData.Pages.forEach(page => {
-          page.Texts.forEach(textItem => {
-            textItem.R.forEach(r => {
-              text += decodeURIComponent(r.T) + ' '
-            })
-          })
-          text += '\n'
-        })
-        const questions = extractMCQFromText(text)
-        resolve(questions)
-      } catch (err) {
-        reject(err)
-      }
-    })
-    
-    pdfParser.on('pdfParser_dataError', reject)
-    pdfParser.parseBuffer(buffer)
-  })
-}
-
 const extractMCQFromText = (text) => {
   const questions = []
   const lines = text.split('\n').filter(l => l.trim())
-  
   let currentQuestion = null
   let options = []
   let correctAnswer = 'A'
-  
   lines.forEach(line => {
     line = line.trim()
-    
     const qMatch = line.match(/^(\d+)[.)]\s+(.+)/)
     if (qMatch) {
       if (currentQuestion && options.length >= 2) {
@@ -54,19 +22,14 @@ const extractMCQFromText = (text) => {
       correctAnswer = 'A'
       return
     }
-    
     const optMatch = line.match(/^[AaBbCcDd][.)]\s+(.+)/)
     if (optMatch && currentQuestion) {
       options.push(optMatch[1])
       return
     }
-    
     const ansMatch = line.match(/^(?:answer|ans|correct)[:\s]+([AaBbCcDd])/i)
-    if (ansMatch) {
-      correctAnswer = ansMatch[1].toUpperCase()
-    }
+    if (ansMatch) correctAnswer = ansMatch[1].toUpperCase()
   })
-  
   if (currentQuestion && options.length >= 2) {
     questions.push({
       id: questions.length + 1,
@@ -76,8 +39,12 @@ const extractMCQFromText = (text) => {
       explanation: ''
     })
   }
-  
   return questions
+}
+
+const parsePDFBuffer = async (buffer) => {
+  const text = buffer.toString('utf-8')
+  return extractMCQFromText(text)
 }
 
 module.exports = { parsePDFBuffer, extractMCQFromText }
