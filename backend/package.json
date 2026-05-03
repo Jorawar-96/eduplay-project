@@ -16,6 +16,7 @@
     "multer": "*",
     "@supabase/supabase-js": "*",
     "socket.io": "*",
-    "dotenv": "*"
+    "dotenv": "*",
+    "pdf2json": "*"
   }
 }
