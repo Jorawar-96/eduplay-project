@@ -1,6 +1,11 @@
 {
   "build": {
-    "steps": []
+    "steps": [
+      {
+        "name": "install",
+        "command": "npm ci"
+      }
+    ]
   },
   "deploy": {
     "startCommand": "node server.js"
