@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { BookOpen, Users, Swords, PlusCircle } from "lucide-react";
 import axios from "axios";
@@ -14,17 +14,88 @@ const mockStudents = [
   { id: 2, name: "Bob S.", level: 3, xp: 850, completed: 4 },
 ];
 
+const CustomDropdown = ({ options, value, onChange, placeholder }: any) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selected = options.find((o: any) => o.value === value);
+
+  return (
+    <div className="relative w-full">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.15)] rounded-xl py-3 px-4 text-white text-left focus:outline-none hover:bg-[rgba(255,255,255,0.1)] transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          {selected ? (
+            <>
+              {selected.icon && <span>{selected.icon}</span>}
+              {selected.color && <span className="w-3 h-3 rounded-full" style={{ backgroundColor: selected.color }} />}
+              <span className="font-bold">{selected.label}</span>
+            </>
+          ) : (
+            <span className="text-white/50">{placeholder}</span>
+          )}
+        </div>
+        <span className="text-xs text-white/50">{isOpen ? "▲" : "▼"}</span>
+      </button>
+      
+      {isOpen && (
+        <div className="absolute top-full left-0 w-full mt-2 bg-[#120a22] border border-[rgba(255,255,255,0.15)] rounded-xl overflow-hidden z-50 shadow-2xl">
+          {options.map((opt: any) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { onChange(opt.value); setIsOpen(false); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[rgba(124,58,237,0.2)] ${
+                value === opt.value ? 'border-l-4 border-purple-500 text-purple-400 bg-[rgba(124,58,237,0.1)]' : 'text-white border-l-4 border-transparent'
+              }`}
+            >
+              {opt.icon && <span>{opt.icon}</span>}
+              {opt.color && <span className="w-3 h-3 rounded-full" style={{ backgroundColor: opt.color }} />}
+              <span className="font-bold">{opt.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function TeacherDashboard() {
   const [topic, setTopic] = useState("python-basics");
-  const [difficulty, setDifficulty] = useState("medium");
+  const [difficulty, setDifficulty] = useState("easy");
+  const [isDeploying, setIsDeploying] = useState(false);
 
-  const handleCreateAssignment = async (e: React.FormEvent) => {
+  const topics = [
+    { value: "python-basics", label: "🐍 Python Basics", icon: "🐍" },
+    { value: "data-structures", label: "🌲 Data Structures", icon: "🌲" },
+    { value: "web-development", label: "🌐 Web Development", icon: "🌐" },
+    { value: "databases", label: "🗄️ Databases", icon: "🗄️" },
+    { value: "computer-networks", label: "🔗 Computer Networks", icon: "🔗" }
+  ];
+
+  const difficulties = [
+    { value: "easy", label: "⚔️ Easy (Grunt)", color: "#14b8a6" },
+    { value: "medium", label: "🔥 Medium (Captain)", color: "#f59e0b" },
+    { value: "hard", label: "💀 Hard (Boss Lord)", color: "#ef4444" }
+  ];
+
+  const handleDeployAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsDeploying(true);
     try {
-      const res = await axios.post(`${API}/api/teacher/quiz/create`, { topic, difficulty, teacherId: 't1' });
-      alert(`Assignment created successfully! ID: ${res.data.assignmentId}`);
+      const res = await axios.post(`${API}/api/teacher/deploy-assignment`, {
+        topic,
+        difficulty,
+        teacherId: 'teacher_123',
+        className: "Class Assignment"
+      });
+      alert(`Assignment deployed successfully!`);
     } catch (err) {
-      alert("Error creating assignment");
+      console.error(err);
+      alert("Failed to deploy assignment.");
+    } finally {
+      setIsDeploying(false);
     }
   };
 
@@ -71,23 +142,15 @@ export default function TeacherDashboard() {
             <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-red-400"><Swords className="w-5 h-5" /> Deploy Boss Fight</h2>
             <p className="text-sm text-white/50 mb-6">Create a custom Class Boss Fight pulling from the databanks.</p>
             
-            <form onSubmit={handleCreateAssignment} className="space-y-4 flex flex-col">
+            <form onSubmit={handleDeployAssignment} className="space-y-4 flex flex-col">
               <label className="text-sm font-bold text-white/70">Topic Realm</label>
-              <select value={topic} onChange={(e) => setTopic(e.target.value)} className="w-full p-3 rounded-xl bg-black/50 border border-white/10 text-white outline-none focus:border-red-500">
-                <option value="python-basics">Python Basics</option>
-                <option value="data-structures">Data Structures</option>
-                <option value="web-development">Web Development</option>
-              </select>
+              <CustomDropdown options={topics} value={topic} onChange={setTopic} placeholder="Select a topic..." />
 
               <label className="text-sm font-bold text-white/70 mt-2">Threat Level</label>
-              <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="w-full p-3 rounded-xl bg-black/50 border border-white/10 text-white outline-none focus:border-red-500">
-                <option value="easy">Easy (Minion)</option>
-                <option value="medium">Medium (Captain)</option>
-                <option value="hard">Hard (Boss)</option>
-              </select>
+              <CustomDropdown options={difficulties} value={difficulty} onChange={setDifficulty} placeholder="Select threat level..." />
 
-              <button type="submit" className="w-full mt-4 py-3 bg-linear-to-r from-red-600 to-orange-600 rounded-xl font-bold flex justify-center items-center gap-2 hover:scale-[1.02] shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-transform">
-                <PlusCircle className="w-5 h-5" /> Deploy Assignment
+              <button type="submit" disabled={isDeploying} className="w-full mt-4 py-3 bg-gradient-to-r from-red-600 to-orange-600 rounded-xl font-bold flex justify-center items-center gap-2 hover:scale-[1.02] shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-transform disabled:opacity-50 disabled:scale-100">
+                <PlusCircle className="w-5 h-5" /> {isDeploying ? "Deploying..." : "Deploy Assignment"}
               </button>
             </form>
           </GlowCard>

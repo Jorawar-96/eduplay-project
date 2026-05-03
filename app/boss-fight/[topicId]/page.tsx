@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Shield, Snowflake, HelpCircle, ArrowLeft, RotateCcw, Swords } from "lucide-react";
 import axios from "axios";
 import confetti from "canvas-confetti";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { StarBackground } from "../../component/StarBackground";
 import { GlowCard } from "../../component/GlowCard";
 
@@ -61,7 +61,10 @@ const fallbackQuestions = [
 export default function BossFight({ params }: { params: Promise<{ topicId: string }> }) {
   const { topicId } = React.use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const topic = topicId; // e.g. "python-basics"
+  const difficulty = searchParams.get("difficulty") || "easy";
+  const isAssignment = searchParams.get("isAssignment") === "true";
 
   // Core Game State
   const [gamePhase, setGamePhase] = useState<"loading" | "playing" | "victory" | "defeat">("loading");
@@ -89,7 +92,7 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const res = await axios.get(`${API}/api/quiz/generate?topic=` + topic + '&difficulty=easy');
+        const res = await axios.get(`${API}/api/quiz/generate?topic=` + topic + `&difficulty=${difficulty}`);
         
         setQuestions(res.data.questions);
         setGamePhase("playing");
@@ -259,6 +262,13 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
 
       <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col h-screen">
         
+        {/* === ASSIGNMENT BANNER === */}
+        {isAssignment && (
+          <div className="bg-red-600/20 border border-red-500/50 text-red-400 font-black py-2 px-4 rounded-xl mb-6 text-center animate-pulse drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+            📢 CLASS ASSIGNMENT
+          </div>
+        )}
+
         {/* === BOSS SECTION (TOP) === */}
         <div className="flex flex-col items-center justify-center mb-8 relative">
           {/* Floating Damage Text */}
