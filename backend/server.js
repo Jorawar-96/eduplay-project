@@ -350,4 +350,5 @@ app.post('/api/teacher/quiz/create', async (req, res) => {
   res.json({ success: true, assignmentId: `assignment_${Date.now()}`, generatedQuestions: customQuiz });
 });
 
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
