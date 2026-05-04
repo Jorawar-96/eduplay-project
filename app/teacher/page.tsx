@@ -67,11 +67,11 @@ export default function TeacherDashboard() {
   const [isDeploying, setIsDeploying] = useState(false);
 
   const topics = [
-    { value: "python-basics", label: "🐍 Python Basics", icon: "🐍" },
-    { value: "data-structures", label: "🌲 Data Structures", icon: "🌲" },
-    { value: "web-development", label: "🌐 Web Development", icon: "🌐" },
-    { value: "databases", label: "🗄️ Databases", icon: "🗄️" },
-    { value: "computer-networks", label: "🔗 Computer Networks", icon: "🔗" }
+    { value: "python-basics", label: "Python Basics", icon: "🐍" },
+    { value: "data-structures", label: "Data Structures", icon: "🌲" },
+    { value: "web-development", label: "Web Development", icon: "🌐" },
+    { value: "databases", label: "Databases", icon: "🗄️" },
+    { value: "computer-networks", label: "Computer Networks", icon: "🔗" }
   ];
 
   const difficulties = [
