@@ -92,26 +92,56 @@ export default function BossFightSelection() {
   }));
 
   return (
-    <div className="min-h-screen bg-[#0a0015] text-white font-sans relative pb-20 overflow-x-hidden selection:bg-purple-500/30">
+    <div className="min-h-screen bg-[#0a0015] text-white font-sans relative pb-20 overflow-x-hidden selection:bg-purple-500/30 scroll-smooth">
       <StarBackground />
 
       <div className="max-w-7xl mx-auto px-6 pt-32 relative z-10">
         
-        {/* --- ACTIVE CLASS ASSIGNMENTS SECTION --- */}
-        {assignments.length > 0 && (
-          <motion.section 
-            initial={{ opacity: 0, y: -20 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            transition={{ duration: 0.5 }}
-            className="mb-20"
-          >
-            <div className="relative mb-10">
-              <h2 className="text-3xl font-black text-white inline-block tracking-tight">
-                ⚔️ Class Assignments
-              </h2>
-              <div className="h-1 w-24 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full mt-3 opacity-80" />
-            </div>
+        {/* --- REGULAR TOPICS SECTION --- */}
+        <section>
+          <div className="relative mb-10">
+            <h2 className="text-3xl font-black text-white inline-block tracking-tight">
+              🗺️ Training Grounds
+            </h2>
+            <div className="h-1 w-24 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full mt-3 opacity-80" />
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {regularTopics.map((topic, i) => (
+              <GlowCard 
+                key={topic.id}
+                className="p-8 cursor-pointer group hover:-translate-y-2 transition-all duration-300 border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)]"
+                onClick={() => router.push(`/boss-fight/${topic.id}`)}
+              >
+                <div className="text-[40px] mb-5">{topic.icon}</div>
+                <h3 className="text-xl font-bold mb-3">{topic.name}</h3>
+                <p className="text-white/40 text-sm mb-8 font-medium leading-relaxed">Select a difficulty and challenge the master of this realm to earn XP.</p>
+                
+                <div className={`text-sm font-bold bg-clip-text text-transparent bg-gradient-to-r ${topic.gradient} flex items-center gap-2`}>
+                  Enter Realm <ArrowRight className="w-4 h-4 text-white/50 group-hover:translate-x-1.5 transition-transform" />
+                </div>
+              </GlowCard>
+            ))}
+          </div>
+        </section>
+
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", margin: "40px 0" }} />
+
+        {/* --- ACTIVE CLASS ASSIGNMENTS SECTION --- */}
+        <motion.section 
+          initial={{ opacity: 0, y: -20 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.5 }}
+          className="mb-20"
+        >
+          <div className="relative mb-10">
+            <h2 className="text-3xl font-black text-white inline-block tracking-tight">
+              📢 Class Battlegrounds
+            </h2>
+            <div className="h-1 w-24 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full mt-3 opacity-80" />
+          </div>
+
+          {assignments.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {assignments.map((assignment, i) => {
                 const style = topicStyles[assignment.topic] || topicStyles["python-basics"];
@@ -174,36 +204,21 @@ export default function BossFightSelection() {
                 )
               })}
             </div>
-          </motion.section>
-        )}
-
-        {/* --- REGULAR TOPICS SECTION --- */}
-        <section>
-          <div className="relative mb-10">
-            <h2 className="text-3xl font-black text-white inline-block tracking-tight">
-              🗺️ Training Grounds
-            </h2>
-            <div className="h-1 w-24 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full mt-3 opacity-80" />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {regularTopics.map((topic, i) => (
-              <GlowCard 
-                key={topic.id}
-                className="p-8 cursor-pointer group hover:-translate-y-2 transition-all duration-300 border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)]"
-                onClick={() => router.push(`/boss-fight/${topic.id}`)}
-              >
-                <div className="text-[40px] mb-5">{topic.icon}</div>
-                <h3 className="text-xl font-bold mb-3">{topic.name}</h3>
-                <p className="text-white/40 text-sm mb-8 font-medium leading-relaxed">Select a difficulty and challenge the master of this realm to earn XP.</p>
-                
-                <div className={`text-sm font-bold bg-clip-text text-transparent bg-gradient-to-r ${topic.gradient} flex items-center gap-2`}>
-                  Enter Realm <ArrowRight className="w-4 h-4 text-white/50 group-hover:translate-x-1.5 transition-transform" />
-                </div>
-              </GlowCard>
-            ))}
-          </div>
-        </section>
+          ) : (
+            <div 
+              style={{
+                backgroundColor: "rgba(255,255,255,0.02)",
+                border: "1px dashed rgba(255,255,255,0.1)",
+                padding: "40px",
+                textAlign: "center",
+                borderRadius: "20px"
+              }}
+            >
+              <h3 className="text-xl font-bold text-white mb-2">⚔️ No active assignments</h3>
+              <p className="text-white/50 text-sm">Your teacher hasn't deployed any battles yet. Check back soon!</p>
+            </div>
+          )}
+        </motion.section>
 
       </div>
 
