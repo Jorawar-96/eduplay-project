@@ -17,7 +17,7 @@ app.use(express.json());
 
 // Configure Supabase (Make sure to set these in your .env later)
 const supabaseUrl = process.env.SUPABASE_URL || 'https://xyzcompany.supabase.co';
-const supabaseKey = process.env.SUPABASE_KEY || 'public-anon-key';
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || 'public-anon-key';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Register Routers
@@ -38,52 +38,35 @@ function shuffleArray(array) {
 app.get('/api/quiz/generate', async (req, res) => {
   const { topic, difficulty } = req.query;
 
-  // 1. Fetch Hardcoded Questions
-  let pool = [];
-  if (questionBank[topic]) {
-    const allQuestions = questionBank[topic];
-    if (difficulty === "easy") {
-      pool = allQuestions.slice(0, 5); 
-    } else if (difficulty === "medium") {
-      pool = allQuestions.slice(3, 8); 
-    } else if (difficulty === "hard") {
-      pool = allQuestions.slice(5, 10);
-    } else {
-      pool = allQuestions.slice(0, 5);
-    }
-  }
-
-  // 2. Fetch Custom Teacher Questions from Supabase
-  const { data: customQuestions } = await supabase
-    .from('custom_questions')
+  // 1. Fetch ALL questions for that topic from Supabase
+  const { data } = await supabase
+    .from('questions')
     .select('*')
-    .eq('category', topic);
+    .eq('topic', topic);
 
-  if (customQuestions && customQuestions.length > 0) {
-    // Merge custom questions into the pool
-    pool = [...pool, ...customQuestions];
-  }
-
-  if (pool.length === 0) {
+  if (!data || data.length === 0) {
     return res.status(404).json({ error: "Topic not found" });
   }
 
-  // Pick 5 random questions total
-  pool = shuffleArray(pool).slice(0, 5);
+  // 2. Shuffle them randomly
+  const shuffled = data.sort(() => Math.random() - 0.5);
 
-  // Pick exactly 5 questions and shuffle their options
-  const selectedQuestions = pool.map(q => ({
-    id: q.id,
-    question: q.question,
-    options: q.options,
-    correct: q.correct,
-    explanation: q.explanation
-  }));
+  // 3. Pick first 5
+  const selected = shuffled.slice(0, 5);
 
-  // In a real app, quizId would be a UUID stored in DB
-  const quizId = `quiz_${Date.now()}`;
-
-  res.json({ quizId, topic, difficulty, questions: shuffleArray(selectedQuestions) });
+  // 4. Return formatted
+  res.json({ 
+    quizId: Date.now().toString(),
+    questions: selected.map(q => ({
+      id: q.id,
+      question: q.question,
+      options: q.options,
+      correct: q.correct,
+      explanation: q.explanation
+    })),
+    topic,
+    difficulty
+  });
 });
 
 // POST /api/quiz/submit
