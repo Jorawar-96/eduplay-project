@@ -19,7 +19,7 @@ const mapNodes = [
 
 // Alternating layout offsets for the snake-like path
 const getLayoutOffset = (index: number) => {
-  if (index === 1) return -120; // Left
+  if (index === 1) return -120; 
   if (index === 3) return 120;  // Right
   return 0;                     // Center
 };
