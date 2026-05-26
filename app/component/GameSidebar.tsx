@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext"; // Adjust import path based on your setup
 
 const studentNavItems = [
@@ -21,11 +21,19 @@ const teacherNavItems = [
 ];
 
 export function GameSidebar() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const isTeacher = user?.role === 'teacher';
 
   const navItems = isTeacher ? teacherNavItems : studentNavItems;
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    logout();
+    router.push("/login");
+  };
 
   return (
     <aside className="w-64 h-screen bg-[#0a0015] border-r border-[rgba(255,255,255,0.05)] flex flex-col relative z-20">
@@ -64,6 +72,17 @@ export function GameSidebar() {
           );
         })}
       </nav>
+
+      {/* Logout Section */}
+      <div className="p-4 border-t border-[rgba(255,255,255,0.05)]">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all duration-200 text-red-400 hover:bg-[rgba(239,68,68,0.1)]"
+        >
+          <span className="text-xl">🚪</span>
+          Logout
+        </button>
+      </div>
     </aside>
   );
 }
