@@ -8,7 +8,7 @@ const studentNavItems = [
   { icon: "🗺️", label: "Knowledge Map", href: "/map" },
   { icon: "⚔️", label: "Boss Fight", href: "/boss-fight" },
   { icon: "🏆", label: "Leaderboard", href: "/leaderboard" },
-  { icon: "👥", label: "Guild", href: "/guild" },
+  { icon: "👥", label: "Guild", href: "/guilds" },
   { icon: "🛒", label: "Shop", href: "/shop" },
   { icon: "🔮", label: "AI Oracle", href: "/oracle" },
 ];
