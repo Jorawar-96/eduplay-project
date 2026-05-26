@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
-import { GameSidebar } from "./component/GameSidebar"
-
+import { SidebarWrapper } from "./component/SidebarWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,7 +31,7 @@ export default function RootLayout({
     <html lang="en">
       <body style={{ display: 'flex', background: '#0a0015' }}>
         <AuthProvider>
-          <GameSidebar />
+          <SidebarWrapper />
           <main style={{ flex: 1, marginLeft: 'auto', minHeight: '100vh', background: '#0a0015' }}>
             {children}
           </main>
