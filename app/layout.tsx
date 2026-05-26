@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
-import GameSidebar from "./component/GameSidebar";
+import { GameSidebar } from "./component/GameSidebar"
 
 
 const geistSans = Geist({
