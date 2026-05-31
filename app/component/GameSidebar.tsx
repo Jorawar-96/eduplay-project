@@ -36,7 +36,7 @@ export function GameSidebar() {
   };
 
   return (
-    <aside className="w-64 h-screen bg-[#0a0015] border-r border-[rgba(255,255,255,0.05)] flex flex-col relative z-20">
+    <aside className="w-[240px] h-screen fixed left-0 top-0 bg-[#0a0015] border-r border-[rgba(255,255,255,0.05)] flex flex-col z-20">
       {/* Profile Section */}
       <div className="p-6 border-b border-[rgba(255,255,255,0.05)]">
         <div className="flex items-center gap-3">

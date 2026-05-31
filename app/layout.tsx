@@ -22,20 +22,23 @@ export const metadata: Metadata = {
   }
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+// app/layout.tsx
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Replace with your actual implementation of collapse state (e.g. from Context/Zustand/Redux)
+  const isCollapsed = false; 
+
   return (
     <html lang="en">
-      <body style={{ display: 'flex', background: '#0a0015' }}>
-        <AuthProvider>
-          <SidebarWrapper />
-          <main style={{ flex: 1, marginLeft: 'auto', minHeight: '100vh', background: '#0a0015' }}>
-            {children}
-          </main>
-        </AuthProvider>
+      <body>
+        {/* Your SidebarWrapper here */}
+        
+        <main style={{ 
+          marginLeft: isCollapsed ? '70px' : '240px',
+          minHeight: '100vh',
+          transition: 'margin-left 0.3s ease'
+        }}>
+          {children}
+        </main>
       </body>
     </html>
   );
