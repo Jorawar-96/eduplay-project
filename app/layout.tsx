@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
 import { SidebarWrapper } from "./component/SidebarWrapper";
+import { MainWrapper } from "./component/MainWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,21 +25,19 @@ export const metadata: Metadata = {
 
 // app/layout.tsx
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // Replace with your actual implementation of collapse state (e.g. from Context/Zustand/Redux)
-  const isCollapsed = false; 
-
   return (
     <html lang="en">
-      <body>
+      <body style={{ 
+        display: 'flex', 
+        background: '#0a0015',
+        margin: 0,
+        padding: 0
+      }}>
         <AuthProvider>
           <SidebarWrapper />
-          <main style={{ 
-            marginLeft: isCollapsed ? '70px' : '240px',
-            minHeight: '100vh',
-            transition: 'margin-left 0.3s ease'
-          }}>
+          <MainWrapper>
             {children}
-          </main>
+          </MainWrapper>
         </AuthProvider>
       </body>
     </html>
