@@ -30,15 +30,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        {/* Your SidebarWrapper here */}
-        
-        <main style={{ 
-          marginLeft: isCollapsed ? '70px' : '240px',
-          minHeight: '100vh',
-          transition: 'margin-left 0.3s ease'
-        }}>
-          {children}
-        </main>
+        <AuthProvider>
+          <SidebarWrapper />
+          <main style={{ 
+            marginLeft: isCollapsed ? '70px' : '240px',
+            minHeight: '100vh',
+            transition: 'margin-left 0.3s ease'
+          }}>
+            {children}
+          </main>
+        </AuthProvider>
       </body>
     </html>
   );
