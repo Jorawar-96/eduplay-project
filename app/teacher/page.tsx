@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { BookOpen, Users, Swords, PlusCircle } from "lucide-react";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 import { StarBackground } from "../component/StarBackground";
 import { GlowCard } from "../component/GlowCard";
 
@@ -62,6 +63,7 @@ const CustomDropdown = ({ options, value, onChange, placeholder }: any) => {
 };
 
 export default function TeacherDashboard() {
+  const { user, token } = useAuth();
   const [topic, setTopic] = useState("python-basics");
   const [difficulty, setDifficulty] = useState("easy");
   const [isDeploying, setIsDeploying] = useState(false);
@@ -82,18 +84,34 @@ export default function TeacherDashboard() {
 
   const handleDeployAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user?.id) {
+      alert("Please log in as a teacher before deploying.");
+      return;
+    }
+    if (user.role !== "teacher") {
+      alert("Only teacher accounts can deploy assignments.");
+      return;
+    }
     setIsDeploying(true);
     try {
-      const res = await axios.post(`${API}/api/teacher/deploy-assignment`, {
-        topic,
-        difficulty,
-        teacherId: 'teacher_123',
-        className: "Class Assignment"
-      });
-      alert(`Assignment deployed successfully!`);
-    } catch (err) {
+      await axios.post(
+        `${API}/api/teacher/deploy-assignment`,
+        {
+          topic,
+          difficulty,
+          teacherId: user.id,
+          className: "Class Assignment",
+        },
+        token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
+      );
+      alert("Assignment deployed successfully!");
+    } catch (err: unknown) {
       console.error(err);
-      alert("Failed to deploy assignment.");
+      const message =
+        axios.isAxiosError(err) && err.response?.data?.error
+          ? String(err.response.data.error)
+          : "Failed to deploy assignment.";
+      alert(message);
     } finally {
       setIsDeploying(false);
     }

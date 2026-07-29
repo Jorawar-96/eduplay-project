@@ -44,12 +44,17 @@ router.post('/register', async (req, res) => {
     // Hash password
     const password_hash = await bcrypt.hash(password, 10);
 
+    const baseUsername =
+      email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 24) || 'user';
+    const username = `${baseUsername}_${Date.now().toString(36).slice(-4)}`;
+
     // Save to Supabase
     const { data: newUser, error } = await supabase
       .from('users')
       .insert([{ 
         name, 
         email, 
+        username,
         password_hash, 
         role: role || 'student',
         total_xp: 0,
