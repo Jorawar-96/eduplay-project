@@ -49,7 +49,47 @@ function getRandomQuestions(topic, count = 5) {
   }));
 }
 
-// GET /api/quiz/generate
+// New: GET /api/quiz/bytopic - returns topic-specific questions (non-randomized, stable order)
+app.get('/api/quiz/bytopic', async (req, res) => {
+  const { topic, count } = req.query;
+  const num = Math.max(1, Math.min(50, parseInt(count) || 5));
+
+  // 1. Try local in-memory question bank first (ensures correct subject mapping)
+  if (questionBank[topic]) {
+    const questions = questionBank[topic].slice(0, num).map(q => ({
+      id: q.id,
+      question: q.question,
+      options: q.options,
+      correct: q.correct,
+      explanation: q.explanation
+    }));
+
+    return res.json({ quizId: Date.now().toString(), questions, topic });
+  }
+
+  // 2. Fallback to Supabase table if local bank doesn't contain the topic
+  const { data } = await supabase
+    .from('questions')
+    .select('*')
+    .eq('topic', topic)
+    .limit(num);
+
+  if (!data || data.length === 0) {
+    return res.status(404).json({ error: "Topic not found" });
+  }
+
+  const selected = data.map(q => ({
+    id: q.id,
+    question: q.question,
+    options: q.options,
+    correct: q.correct,
+    explanation: q.explanation
+  }));
+
+  return res.json({ quizId: Date.now().toString(), questions: selected, topic });
+});
+
+// Existing route: GET /api/quiz/generate (unchanged) - still returns randomized selection when used
 app.get('/api/quiz/generate', async (req, res) => {
   const { topic, difficulty } = req.query;
 

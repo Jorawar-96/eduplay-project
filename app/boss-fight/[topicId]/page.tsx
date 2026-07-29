@@ -20,43 +20,6 @@ interface Question {
   explanation: string;
 }
 
-const fallbackQuestions = [
-  {
-    id: 1,
-    question: "What is the output of print(2**3)?",
-    options: ["6", "8", "9", "5"],
-    correct: "B",
-    explanation: "** is power operator, 2^3 = 8"
-  },
-  {
-    id: 2, 
-    question: "Which keyword defines a function in Python?",
-    options: ["func", "def", "function", "define"],
-    correct: "B",
-    explanation: "def keyword is used to define functions"
-  },
-  {
-    id: 3,
-    question: "What data type is [1,2,3] in Python?",
-    options: ["tuple", "dict", "list", "array"],
-    correct: "C",
-    explanation: "Square brackets create a list"
-  },
-  {
-    id: 4,
-    question: "How do you take user input in Python?",
-    options: ["scan()", "input()", "read()", "get()"],
-    correct: "B",
-    explanation: "input() function reads user input"
-  },
-  {
-    id: 5,
-    question: "What does len('hello') return?",
-    options: ["4", "5", "6", "error"],
-    correct: "B",
-    explanation: "len() counts characters, 'hello' has 5"
-  }
-];
 
 export default function BossFight({ params }: { params: { topicId: string } }) {
   const topicId = params.topicId;
@@ -93,23 +56,26 @@ export default function BossFight({ params }: { params: { topicId: string } }) {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const res = await axios.get(`${API}/api/quiz/generate`, {
-          params: {
-            topic,
-            difficulty,
-            t: Date.now(),
-          },
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
+        // Use bytopic endpoint to ensure subject-specific questions (non-randomized)
+        const res = await axios.get(`${API}/api/quiz/bytopic`, {
+          params: { topic, count: 5 },
+          headers: { 'Cache-Control': 'no-cache' }
         });
 
-        setQuestions(res.data.questions);
+        if (res.data && Array.isArray(res.data.questions) && res.data.questions.length > 0) {
+          setQuestions(res.data.questions);
+          setGamePhase("playing");
+          return;
+        }
+
+        // If response empty, fall through to generate endpoint as last resort
+        const fallbackRes = await axios.get(`${API}/api/quiz/generate`, { params: { topic, difficulty } });
+        setQuestions(fallbackRes.data.questions || []);
         setGamePhase("playing");
       } catch (err) {
         console.error("Quiz fetch failed:", err);
-        // Fallback: use hardcoded questions if API fails
-        setQuestions(fallbackQuestions);
+        // If backend fails entirely, set empty questions so UI can show study guide or error message
+        setQuestions([]);
         setGamePhase("playing");
       }
     };
@@ -274,6 +240,21 @@ export default function BossFight({ params }: { params: { topicId: string } }) {
   };
 
   if (gamePhase === "loading") return <div className="min-h-screen bg-[#0a0015] text-white flex items-center justify-center font-black text-3xl">Loading Battle...</div>;
+
+  // If backend returned no questions for this topic, show a friendly message instead of rendering the battle UI
+  if (gamePhase === "playing" && questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#0a0015] text-white flex items-center justify-center font-black text-center p-6">
+        <div className="max-w-lg">
+          <h2 className="text-3xl mb-4">No questions available for this topic</h2>
+          <p className="text-white/70 mb-6">There are no questions found for the selected topic ({topic}). Please go back and try a different realm or contact the teacher to add questions.</p>
+          <div className="flex justify-center gap-4">
+            <button onClick={() => router.push('/boss-fight')} className="px-6 py-3 bg-linear-to-r from-purple-600 to-indigo-600 rounded-xl font-bold">Back to Realms</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0015] text-white font-sans overflow-hidden relative">
