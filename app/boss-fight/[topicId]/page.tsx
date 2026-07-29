@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Shield, Snowflake, HelpCircle, ArrowLeft, RotateCcw } from "lucide-react";
 import axios from "axios";
 import confetti from "canvas-confetti";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { StarBackground } from "../../component/StarBackground";
 import { GlowCard } from "../../component/GlowCard";
 
@@ -22,7 +22,8 @@ interface Question {
 
 
 export default function BossFight({ params }: { params: { topicId: string } }) {
-  const topicId = params.topicId;
+  const paramsHook = useParams();
+  const topicId = paramsHook?.topicId || '';
   const router = useRouter();
   const searchParams = useSearchParams();
   const topic = topicId; // e.g. "python-basics"

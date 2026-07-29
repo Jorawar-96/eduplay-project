@@ -52,11 +52,23 @@ function getRandomQuestions(topic, count = 5) {
 // New: GET /api/quiz/bytopic - returns topic-specific questions (non-randomized, stable order)
 app.get('/api/quiz/bytopic', async (req, res) => {
   const { topic, count } = req.query;
+  console.log('[api/quiz/bytopic] incoming query:', { topic, count });
   const num = Math.max(1, Math.min(50, parseInt(count) || 5));
 
-  // 1. Try local in-memory question bank first (ensures correct subject mapping)
-  if (questionBank[topic]) {
-    const questions = questionBank[topic].slice(0, num).map(q => ({
+  // Normalize the topic to a string for safer lookups (but do not modify the stored keys)
+  const topicStr = typeof topic === 'string' ? topic : (topic ? String(topic) : '');
+  // Normalize slug: lowercase, trim, spaces/underscores -> hyphens
+  const normalized = topicStr.trim().toLowerCase().replace(/\s+/g, '-').replace(/_+/g, '-');
+  const localExistsOrig = Array.isArray(questionBank[topicStr]) && questionBank[topicStr].length > 0;
+  const localExistsNorm = Array.isArray(questionBank[normalized]) && questionBank[normalized].length > 0;
+  console.log(`[api/quiz/bytopic] topicStr="${topicStr}", normalized="${normalized}", localExistsOrig=${localExistsOrig}, localExistsNorm=${localExistsNorm}`);
+
+  // Prefer exact key first, then normalized key
+  if (localExistsOrig || localExistsNorm) {
+    const key = localExistsOrig ? topicStr : normalized;
+    // Shuffle and pick `num` random questions from the subject bank
+    const shuffled = shuffleArray(questionBank[key]);
+    const questions = shuffled.slice(0, num).map(q => ({
       id: q.id,
       question: q.question,
       options: q.options,
@@ -64,18 +76,26 @@ app.get('/api/quiz/bytopic', async (req, res) => {
       explanation: q.explanation
     }));
 
-    return res.json({ quizId: Date.now().toString(), questions, topic });
+    console.log(`[api/quiz/bytopic] returning ${questions.length} randomized questions from local bank for topicKey="${key}"`);
+    return res.json({ quizId: Date.now().toString(), questions, topic: key });
   }
 
   // 2. Fallback to Supabase table if local bank doesn't contain the topic
+  console.log(`[api/quiz/bytopic] topic not found in local bank, querying Supabase for topic="${normalized}"`);
+  if (!supabase) {
+    console.log('[api/quiz/bytopic] Supabase client not configured. Unable to query remote DB.');
+    return res.status(503).json({ error: 'Supabase not configured', topic: normalized });
+  }
+
   const { data } = await supabase
     .from('questions')
     .select('*')
-    .eq('topic', topic)
+    .eq('topic', normalized)
     .limit(num);
 
   if (!data || data.length === 0) {
-    return res.status(404).json({ error: "Topic not found" });
+    console.log(`[api/quiz/bytopic] Supabase returned no rows for topic="${normalized}"`);
+    return res.status(404).json({ error: "Topic not found", topic: normalized });
   }
 
   const selected = data.map(q => ({
@@ -86,7 +106,8 @@ app.get('/api/quiz/bytopic', async (req, res) => {
     explanation: q.explanation
   }));
 
-  return res.json({ quizId: Date.now().toString(), questions: selected, topic });
+  console.log(`[api/quiz/bytopic] returning ${selected.length} questions from Supabase for topic="${normalized}"`);
+  return res.json({ quizId: Date.now().toString(), questions: selected, topic: normalized });
 });
 
 // Existing route: GET /api/quiz/generate (unchanged) - still returns randomized selection when used

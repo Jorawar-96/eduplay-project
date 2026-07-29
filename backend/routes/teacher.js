@@ -1,12 +1,17 @@
 const express = require('express');
-const { createClient } = require('@supabase/supabase-js');
+let supabase = null;
+try {
+  const { createClient } = require('@supabase/supabase-js');
+  if (process.env.SUPABASE_URL && (process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY)) {
+    supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY);
+  } else {
+    console.warn('[routes/teacher] Supabase not configured. Teacher routes will return 503 until configured.');
+  }
+} catch (err) {
+  console.error('[routes/teacher] Failed to require supabase client:', err.message);
+}
 
 const router = express.Router();
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
