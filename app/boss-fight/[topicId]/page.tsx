@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Snowflake, HelpCircle, ArrowLeft, RotateCcw, Swords } from "lucide-react";
+import { Shield, Snowflake, HelpCircle, ArrowLeft, RotateCcw } from "lucide-react";
 import axios from "axios";
 import confetti from "canvas-confetti";
 import { useRouter, useSearchParams } from "next/navigation";
 import { StarBackground } from "../../component/StarBackground";
 import { GlowCard } from "../../component/GlowCard";
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 // TypeScript interfaces for our Question data
 interface Question {
@@ -87,6 +87,7 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
   const [score, setScore] = useState({ correct: 0, wrong: 0, xpEarned: 0 });
   const [floatingTexts, setFloatingTexts] = useState<{ id: number; text: string; color: string }[]>([]);
   const [monsterShake, setMonsterShake] = useState(false);
+  const floatingTextIdRef = useRef(0);
 
   // 1. Fetch Questions from our Node.js Backend on mount
   useEffect(() => {
@@ -131,45 +132,67 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gamePhase, isTimerFrozen, currentIndex]);
+  }, [gamePhase, isTimerFrozen, currentIndex, handleMiss]);
 
   // Helper to spawn floating text over characters
-  const spawnFloatingText = (text: string, color: string) => {
-    const id = Date.now();
+  const spawnFloatingText = useCallback((text: string, color: string) => {
+    const id = ++floatingTextIdRef.current;
     setFloatingTexts(prev => [...prev, { id, text, color }]);
     setTimeout(() => {
       setFloatingTexts(prev => prev.filter(t => t.id !== id));
     }, 2000);
-  };
+  }, []);
 
   // 3. Handle Answer Selection
+  const moveToNextQuestion = useCallback(() => {
+    setHiddenOptions([]); // reset hints
+
+    setTimeout(() => {
+      setCurrentIndex((prev) => {
+        if (prev < questions.length - 1) {
+          setTimeLeft(30);
+          return prev + 1;
+        }
+        setGamePhase((phase) => (phase === "playing" ? "defeat" : phase));
+        return prev;
+      });
+    }, 1000);
+  }, [questions.length]);
+
   const handleAnswer = (selectedIndex: number) => {
     const currentQ = questions[currentIndex];
-    const correctIndex = ['A', 'B', 'C', 'D'].indexOf(currentQ.correct);
+    const correctIndex = ["A", "B", "C", "D"].indexOf(currentQ.correct);
     const isCorrect = selectedIndex === correctIndex;
 
     if (isCorrect) {
-      // CRITICAL HIT! 
-      // Base damage 80. Faster answers do more damage!
-      const speedBonus = timeLeft > 15 ? 20 : 0; 
+      const speedBonus = timeLeft > 15 ? 20 : 0;
       const damage = 80 + speedBonus;
-      
-      setMonsterHP(prev => prev - damage);
-      setScore(prev => ({ ...prev, correct: prev.correct + 1 }));
+      const nextMonsterHP = monsterHP - damage;
+
+      setMonsterHP(nextMonsterHP);
+      setScore((prev) => ({ ...prev, correct: prev.correct + 1 }));
       spawnFloatingText(`CRITICAL HIT! -${damage} HP`, "text-green-400");
-      
-      // Trigger Boss Shake Animation
       setMonsterShake(true);
       setTimeout(() => setMonsterShake(false), 500);
 
+      if (nextMonsterHP <= 0) {
+        handleVictory();
+        return;
+      }
     } else {
-      setScore(prev => ({ ...prev, wrong: prev.wrong + 1 }));
-      
+      setScore((prev) => ({ ...prev, wrong: prev.wrong + 1 }));
+
       if (shieldActive) {
         spawnFloatingText("BLOCKED!", "text-blue-400");
         setShieldActive(false); // consume shield
       } else {
-        setPlayerEnergy(prev => prev - 20);
+        setPlayerEnergy((prev) => {
+          const nextEnergy = prev - 20;
+          if (nextEnergy <= 0) {
+            setGamePhase("defeat");
+          }
+          return nextEnergy;
+        });
         spawnFloatingText(`MISS! -20 Energy`, "text-red-500");
       }
     }
@@ -177,45 +200,30 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
     moveToNextQuestion();
   };
 
-  const handleMiss = (msg: string) => {
-    setScore(prev => ({ ...prev, wrong: prev.wrong + 1 }));
-    
-    if (shieldActive) {
-      spawnFloatingText("BLOCKED!", "text-blue-400");
-      setShieldActive(false); // consume shield
-    } else {
-      setPlayerEnergy(prev => prev - 20);
-      spawnFloatingText(`${msg} -20 Energy`, "text-red-500");
-    }
-  };
+  const handleMiss = useCallback(
+    (msg: string) => {
+      setScore((prev) => ({ ...prev, wrong: prev.wrong + 1 }));
 
-  const moveToNextQuestion = () => {
-    setHiddenOptions([]); // reset hints
-    
-    setTimeout(() => {
-      setCurrentIndex((prev) => {
-        if (prev < questions.length - 1) {
-          setTimeLeft(30);
-          return prev + 1;
-        }
-        setGamePhase(phase => phase === "playing" ? "defeat" : phase);
-        return prev;
-      });
-    }, 1000);
-  };
+      if (shieldActive) {
+        spawnFloatingText("BLOCKED!", "text-blue-400");
+        setShieldActive(false); // consume shield
+      } else {
+        setPlayerEnergy((prev) => {
+          const nextEnergy = prev - 20;
+          if (nextEnergy <= 0) {
+            setGamePhase("defeat");
+          }
+          return nextEnergy;
+        });
+        spawnFloatingText(`${msg} -20 Energy`, "text-red-500");
+      }
 
-  // Victory/Defeat check after every answer
-  useEffect(() => {
-    if (gamePhase !== "playing") return;
-    if (monsterHP <= 0) {
-      handleVictory();
-    } else if (playerEnergy <= 0) {
-      setGamePhase("defeat");
-    }
-  }, [monsterHP, playerEnergy, gamePhase]);
-
+      moveToNextQuestion();
+    },
+    [shieldActive, spawnFloatingText, moveToNextQuestion]
+  );
   // 4. Handle Victory & Submit to DB
-  const handleVictory = async () => {
+  const handleVictory = useCallback(async () => {
     setGamePhase("victory");
     confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
     
@@ -231,7 +239,7 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
     } catch (err) {
       console.log(err);
     }
-  };
+  }, [totalTimeTaken]);
 
   // 5. Inventory Handlers
   const useShield = () => {

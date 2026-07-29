@@ -7,7 +7,7 @@ import { Shield, Snowflake, HelpCircle, Zap, User, Coins, ShoppingCart, Check } 
 import { StarBackground } from "../component/StarBackground";
 import { GlowCard } from "../component/GlowCard";
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 const shopItems = [
   { id: "shield", name: "Shield", description: "Boss Fight protection", price: 50, icon: <Shield className="w-8 h-8 text-blue-400" /> },

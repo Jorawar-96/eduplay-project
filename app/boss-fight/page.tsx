@@ -8,7 +8,7 @@ import { GlowCard } from "../component/GlowCard";
 import { ArrowRight } from "lucide-react";
 import axios from "axios";
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 // Topic configurations mapping
 const topicStyles: Record<string, any> = {

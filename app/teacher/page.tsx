@@ -8,7 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import { StarBackground } from "../component/StarBackground";
 import { GlowCard } from "../component/GlowCard";
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 const mockStudents = [
   { id: 1, name: "Alice J.", level: 5, xp: 2400, completed: 12 },
