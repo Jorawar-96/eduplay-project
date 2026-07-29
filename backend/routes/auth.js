@@ -8,14 +8,26 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_key';
 
 // Initialize Supabase client
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+
+const supabase =
+  supabaseUrl && supabaseKey
+    ? createClient(supabaseUrl, supabaseKey)
+    : null;
+
+function dbConfigError(res) {
+  return res.status(503).json({
+    error:
+      'Server database is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_KEY (service role key) on the backend.',
+  });
+}
 
 // REGISTER Route
 router.post('/register', async (req, res) => {
   try {
+    if (!supabase) return dbConfigError(res);
+
     const { name, email, password, role } = req.body;
 
     // Check if user exists
@@ -23,7 +35,7 @@ router.post('/register', async (req, res) => {
       .from('users')
       .select('id')
       .eq('email', email)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return res.status(400).json({ error: 'Email already registered' });
@@ -52,13 +64,22 @@ router.post('/register', async (req, res) => {
 
     res.json({ success: true, message: 'Account created successfully' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    const msg = err.message || String(err);
+    if (msg.includes('fetch failed')) {
+      return res.status(503).json({
+        error:
+          'Cannot reach Supabase. Check SUPABASE_URL and SUPABASE_SERVICE_KEY on Render (or in backend/.env for local dev).',
+      });
+    }
+    res.status(500).json({ error: msg });
   }
 });
 
 // LOGIN Route
 router.post('/login', async (req, res) => {
   try {
+    if (!supabase) return dbConfigError(res);
+
     const { email, password } = req.body;
 
     // Find user from Supabase
@@ -104,6 +125,8 @@ router.post('/login', async (req, res) => {
 // GET /me Route
 router.get('/me', async (req, res) => {
   try {
+    if (!supabase) return dbConfigError(res);
+
     // Verify Bearer token from headers
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
