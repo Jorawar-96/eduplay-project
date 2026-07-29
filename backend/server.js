@@ -50,10 +50,10 @@ app.get('/api/quiz/generate', async (req, res) => {
     return res.status(404).json({ error: "Topic not found" });
   }
 
-  // 2. Shuffle them randomly
-  const shuffled = data.sort(() => Math.random() - 0.5);
+  // 2. Shuffle them randomly using Fisher-Yates so quiz questions vary each time
+  const shuffled = shuffleArray(data);
 
-  // 3. Pick first 5
+  // 3. Pick first 5 questions from the randomized pool
   const selected = shuffled.slice(0, 5);
 
   // 4. Return formatted

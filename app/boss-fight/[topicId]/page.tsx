@@ -92,8 +92,17 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const res = await axios.get(`${API}/api/quiz/generate?topic=` + topic + `&difficulty=${difficulty}`);
-        
+        const res = await axios.get(`${API}/api/quiz/generate`, {
+          params: {
+            topic,
+            difficulty,
+            t: Date.now(),
+          },
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        });
+
         setQuestions(res.data.questions);
         setGamePhase("playing");
       } catch (err) {
@@ -104,7 +113,7 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
       }
     };
     fetchQuestions();
-  }, [topic]);
+  }, [topic, difficulty]);
 
   // 2. Countdown Timer Logic
   useEffect(() => {
