@@ -58,13 +58,13 @@ const fallbackQuestions = [
   }
 ];
 
-export default function BossFight({ params }: { params: Promise<{ topicId: string }> }) {
-  const { topicId } = React.use(params);
+export default function BossFight({ params }: { params: { topicId: string } }) {
+  const topicId = params.topicId;
   const router = useRouter();
   const searchParams = useSearchParams();
   const topic = topicId; // e.g. "python-basics"
   const difficulty = searchParams.get("difficulty") || "easy";
-  const isAssignment = searchParams.get("isAssignment") === "true";
+  const isAssignment = searchParams.get("mode") === "assignment";
 
   // Core Game State
   const [gamePhase, setGamePhase] = useState<"loading" | "playing" | "victory" | "defeat">("loading");

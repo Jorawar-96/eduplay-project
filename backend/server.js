@@ -36,9 +36,33 @@ function shuffleArray(array) {
   return newArr;
 }
 
+function getRandomQuestions(topic, count = 5) {
+  const bank = questionBank[topic];
+  if (!bank || bank.length === 0) return null;
+  const shuffled = shuffleArray(bank);
+  return shuffled.slice(0, count).map(q => ({
+    id: q.id,
+    question: q.question,
+    options: q.options,
+    correct: q.correct,
+    explanation: q.explanation
+  }));
+}
+
 // GET /api/quiz/generate
 app.get('/api/quiz/generate', async (req, res) => {
   const { topic, difficulty } = req.query;
+
+  // Prefer local question bank when topic exists there, so each subject returns its own random pool.
+  const localQuestions = getRandomQuestions(topic, 5);
+  if (localQuestions) {
+    return res.json({
+      quizId: Date.now().toString(),
+      questions: localQuestions,
+      topic,
+      difficulty
+    });
+  }
 
   // 1. Fetch ALL questions for that topic from Supabase
   const { data } = await supabase
