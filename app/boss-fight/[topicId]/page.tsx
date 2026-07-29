@@ -116,6 +116,54 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
     fetchQuestions();
   }, [topic, difficulty]);
 
+  // Helper to spawn floating text over characters
+  const spawnFloatingText = useCallback((text: string, color: string) => {
+    const id = ++floatingTextIdRef.current;
+    setFloatingTexts(prev => [...prev, { id, text, color }]);
+    setTimeout(() => {
+      setFloatingTexts(prev => prev.filter(t => t.id !== id));
+    }, 2000);
+  }, []);
+
+  // Move to the next question after an answer or miss
+  const moveToNextQuestion = useCallback(() => {
+    setHiddenOptions([]); // reset hints
+
+    setTimeout(() => {
+      setCurrentIndex((prev) => {
+        if (prev < questions.length - 1) {
+          setTimeLeft(30);
+          return prev + 1;
+        }
+        setGamePhase((phase) => (phase === "playing" ? "defeat" : phase));
+        return prev;
+      });
+    }, 1000);
+  }, [questions.length]);
+
+  const handleMiss = useCallback(
+    (msg: string) => {
+      setScore((prev) => ({ ...prev, wrong: prev.wrong + 1 }));
+
+      if (shieldActive) {
+        spawnFloatingText("BLOCKED!", "text-blue-400");
+        setShieldActive(false); // consume shield
+      } else {
+        setPlayerEnergy((prev) => {
+          const nextEnergy = prev - 20;
+          if (nextEnergy <= 0) {
+            setGamePhase("defeat");
+          }
+          return nextEnergy;
+        });
+        spawnFloatingText(`${msg} -20 Energy`, "text-red-500");
+      }
+
+      moveToNextQuestion();
+    },
+    [shieldActive, spawnFloatingText, moveToNextQuestion]
+  );
+
   // 2. Countdown Timer Logic
   useEffect(() => {
     if (gamePhase !== "playing" || isTimerFrozen) return;
@@ -134,31 +182,7 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
     return () => clearInterval(timer);
   }, [gamePhase, isTimerFrozen, currentIndex, handleMiss]);
 
-  // Helper to spawn floating text over characters
-  const spawnFloatingText = useCallback((text: string, color: string) => {
-    const id = ++floatingTextIdRef.current;
-    setFloatingTexts(prev => [...prev, { id, text, color }]);
-    setTimeout(() => {
-      setFloatingTexts(prev => prev.filter(t => t.id !== id));
-    }, 2000);
-  }, []);
-
   // 3. Handle Answer Selection
-  const moveToNextQuestion = useCallback(() => {
-    setHiddenOptions([]); // reset hints
-
-    setTimeout(() => {
-      setCurrentIndex((prev) => {
-        if (prev < questions.length - 1) {
-          setTimeLeft(30);
-          return prev + 1;
-        }
-        setGamePhase((phase) => (phase === "playing" ? "defeat" : phase));
-        return prev;
-      });
-    }, 1000);
-  }, [questions.length]);
-
   const handleAnswer = (selectedIndex: number) => {
     const currentQ = questions[currentIndex];
     const correctIndex = ["A", "B", "C", "D"].indexOf(currentQ.correct);
@@ -200,28 +224,6 @@ export default function BossFight({ params }: { params: Promise<{ topicId: strin
     moveToNextQuestion();
   };
 
-  const handleMiss = useCallback(
-    (msg: string) => {
-      setScore((prev) => ({ ...prev, wrong: prev.wrong + 1 }));
-
-      if (shieldActive) {
-        spawnFloatingText("BLOCKED!", "text-blue-400");
-        setShieldActive(false); // consume shield
-      } else {
-        setPlayerEnergy((prev) => {
-          const nextEnergy = prev - 20;
-          if (nextEnergy <= 0) {
-            setGamePhase("defeat");
-          }
-          return nextEnergy;
-        });
-        spawnFloatingText(`${msg} -20 Energy`, "text-red-500");
-      }
-
-      moveToNextQuestion();
-    },
-    [shieldActive, spawnFloatingText, moveToNextQuestion]
-  );
   // 4. Handle Victory & Submit to DB
   const handleVictory = useCallback(async () => {
     setGamePhase("victory");
